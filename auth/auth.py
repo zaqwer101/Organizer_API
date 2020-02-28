@@ -17,6 +17,6 @@ def auth(incoming_data, verification_string):
         return token
 
 
-@app.route('/')
-def get_token():
+@app.route('/<secret>')
+def get_token(secret):
     return jsonify({'token': generate_token()})
