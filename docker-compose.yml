@@ -5,5 +5,11 @@ services:
     ports:
       - "5000:5000"
   auth:
+    depends_on:
+      - redis
     build: auth/
-  
+  redis:
+    image: redis
+    command: "redis-server"
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf

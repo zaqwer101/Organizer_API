@@ -1,0 +1,3 @@
+ERRORS = [
+    'secret is invalid'
+]
