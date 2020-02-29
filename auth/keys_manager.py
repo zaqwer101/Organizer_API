@@ -1,27 +1,76 @@
-import rsa
-import os
-###
-# Это, наверное, будет часть сервиса авторизации.
-# Будем 1) проверять зашифрованную мессагу, и если она совпадает с заданной при запуске приложения
-# Если всё совпало, генерируем токен авторизации, с которым делаем все остальные запросы
-# Через час инактива токен сгорает. Их можно хранить в Redis
-###
-def load_keys():
-    private = rsa.PrivateKey.load_pkcs1(open('private', 'r').read().encode())
-    public  = rsa.PublicKey.load_pkcs1(open('public', 'r').read().encode())
-    return private, public
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes
+
+public = ''
+private = ''
 
 def generate_keys():
-    (pubkey, privkey) = rsa.newkeys()
-    pubkey_pem = pubkey.save_pkcs1()  # (format='PEM')
-    privkey_pem = privkey.save_pkcs1()
-    os.remove('public')
-    os.remove('private')
-    open('public', 'w').write(pubkey_pem.decode('utf-8'))
-    open('private', 'w').write(privkey_pem.decode('utf-8'))
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+        backend=default_backend()
+    )
+    public_key = private_key.public_key()
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    public_pem = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    with open('private_key.pem', 'wb') as f:
+        f.write(private_pem)
+    with open('public_key.pem', 'wb') as f:
+        f.write(public_pem)
+
+    return private_key, public_key
+
+def load_keys():
+    with open("private_key.pem", "rb") as key_file:
+        private_key = serialization.load_pem_private_key(
+            key_file.read(),
+            password=None,
+            backend=default_backend()
+        )
+    with open("public_key.pem", "rb") as key_file:
+        public_key = serialization.load_pem_public_key(
+            key_file.read(),
+            backend=default_backend()
+        )
+    return private_key, public_key
 
 def encrypt(message):
-    return rsa.encrypt(message.encode(), load_keys()[1])
+    global private
+    global public
+    if not private or not public:
+        private, public = load_keys()
+
+    encrypted = public.encrypt(
+        message.encode(),
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    return encrypted
 
 def decrypt(message):
-    return rsa.decrypt(message, load_keys()[0]).decode('utf-8')
+    global private
+    global public
+    if not private or not public:
+        private, public = load_keys()
+    decrypted = private.decrypt(
+        message,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    return decrypted.decode()

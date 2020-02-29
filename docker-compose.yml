@@ -4,10 +4,14 @@ services:
     build: app/
     ports:
       - "5000:5000"
+    volumes:
+    - ./app:/app
   auth:
     depends_on:
       - redis
     build: auth/
+    volumes:
+    - ./auth:/auth
   redis:
     image: redis
     command: "redis-server"

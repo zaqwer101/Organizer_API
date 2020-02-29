@@ -5,6 +5,8 @@ import errors
 app = Flask(__name__)
 
 
+# curl --header "Content-Type: application/json" --request POST --data '{"secret":"xyz"}' http://127.0.0.1:5000/auth
+
 # TODO: сейчас работать не будет, потому что зашифрованные данные передать сложновато через GET-запрос
 @app.route('/auth', methods=['POST'])
 def auth():
@@ -19,3 +21,8 @@ def auth():
         return jsonify({'error': errors.ERRORS[0]})
     else:
         return jsonify({'token': token})
+
+
+@app.route('/', methods=['GET'])
+def root():
+    return 'Hello!'
