@@ -1,3 +1,3 @@
 ERRORS = [
-    'secret is invalid'
+    'invalid login or password'
 ]

@@ -1,22 +1,41 @@
-import random
-import string
-import keys_manager
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
 
-def generate_token():
-    return ''.join(random.choice(string.ascii_letters) for i in range(40))
+# log in with password
+@app.route('/auth', methods=['POST'])
+def authorize():
+    login = request.get_json()['login']
+    password = request.get_json()['password']
+    print(login, password)
+    if is_login_exists(login):
+        if is_password_match(login, password):
+            token = generate_token(login)
+            return jsonify({'token': token})
+        else:
+            return jsonify({"error": "invalid credentials"})
 
 
-def auth(incoming_data, verification_string):
-    if keys_manager.decrypt(incoming_data) == keys_manager.decrypt(verification_string):
-        token = generate_token()
-        # TODO записываем token в БД куда-нить
-        return token
+# check permissions with token
+def authenticate(token):
+    if check_token(token):
+        return jsonify({"status": "valid"})
+    else:
+        return jsonify({"status": "invalid"})
 
 
-@app.route('/<secret>')
-def get_token(secret):
-    return jsonify({'token': generate_token()})
+def check_token(login, token):
+    return True
+
+
+def is_login_exists(login):
+    return True
+
+
+def is_password_match(login, password):
+    return True
+
+
+def generate_token(login):
+    return "some token hehe"
