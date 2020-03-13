@@ -14,10 +14,8 @@ def auth():
         print(login + ", " + password)
     except:
         return jsonify({'error': 'no login or password provided'})
-
     if not login or not password:
         return jsonify({'error': 'empty login or password'})
-
     headers = {'content-type': 'application/json'}
     url = "http://auth:5000/auth"
     data = {'login': login, 'password': password}
@@ -27,6 +25,8 @@ def auth():
         return jsonify({'error': 'invalid login or password'})
     else:
         return token
+
+
 
 
 @app.route('/', methods=['GET'])
