@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 import hashlib
+import requests
 
 app = Flask(__name__)
 
@@ -37,7 +38,11 @@ def is_login_exists(login):
 
 
 def is_password_match(login, password):
-    return True
+    user = get_user(login)
+    if user:
+        if user['password'] == password:
+            return True
+    return False
 
 
 def generate_token(login):
@@ -46,3 +51,10 @@ def generate_token(login):
 
 def encode_password(password):
     return hashlib.md5(password.encode()).hexdigest()
+
+
+def get_user(login):
+    user = requests.get('http://database:5000/users/' + login).json()
+    if 'error' in user:
+        return None
+    return user

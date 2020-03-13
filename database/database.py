@@ -14,4 +14,6 @@ def get_user(login):
     app.logger.info(login)
     data = users.find_one({"login": login}, {"login": 1, "password": 1, "_id": 0})
     app.logger.info(data)
+    if not data:
+        return jsonify({"error": "user not found"})
     return data
