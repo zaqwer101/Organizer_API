@@ -9,8 +9,9 @@ app = Flask(__name__)
 def authorize():
     login = request.get_json()['login']
     password = request.get_json()['password']
-    password = hashlib.md5(password.encode()).hexdigest()
-    app.logger.info("MD5 of password: " + password)
+    password = encode_password(password)
+
+    app.logger.info("Encoded password: " + password)
     if is_login_exists(login):
         if is_password_match(login, password):
             token = generate_token(login)
@@ -41,3 +42,7 @@ def is_password_match(login, password):
 
 def generate_token(login):
     return "some token hehe"
+
+
+def encode_password(password):
+    return hashlib.md5(password.encode()).hexdigest()
