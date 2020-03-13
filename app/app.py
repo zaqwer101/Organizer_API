@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request
 import requests
-import errors
 
 app = Flask(__name__)
 
@@ -25,7 +24,7 @@ def auth():
     token = requests.post(url, json=data, headers=headers).content
     print(token)
     if not token:
-        return jsonify({'error': errors.ERRORS[0]})
+        return jsonify({'error': 'invalid login or password'})
     else:
         return token
 

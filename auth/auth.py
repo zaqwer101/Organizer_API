@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+import hashlib
 
 app = Flask(__name__)
 
@@ -8,7 +9,8 @@ app = Flask(__name__)
 def authorize():
     login = request.get_json()['login']
     password = request.get_json()['password']
-    print(login, password)
+    password = hashlib.md5(password.encode()).hexdigest()
+    app.logger.info("MD5 of password: " + password)
     if is_login_exists(login):
         if is_password_match(login, password):
             token = generate_token(login)
