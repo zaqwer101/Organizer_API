@@ -1,6 +1,6 @@
 FROM python:3.8-alpine
-WORKDIR /app
-ENV FLASK_APP app.py
+WORKDIR /api
+ENV FLASK_APP api.py
 ENV FLASK_DEBUG=1
 ENV FLASK_RUN_HOST 0.0.0.0
 COPY requirements.txt requirements.txt
