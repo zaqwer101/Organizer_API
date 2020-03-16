@@ -1,7 +1,7 @@
 import functools
 
 from flask import Flask, jsonify, request
-import requests
+import requests, json
 
 app = Flask(__name__)
 auth_url = "http://auth:5000"
@@ -14,13 +14,27 @@ def error(message):
 def auth_needed(func):
     @functools.wraps(func)
     def check_auth(*args, **kwargs):
-        if 'token' in request.args:
-            token = request.args['token']
-            r = requests.get(auth_url + "/auth/" + token)
-            if r.json()['status'] == 'invalid':
-                return error('invalid token')
-        else:
-            return error('token not set')
+        if request.method == 'GET':
+            app.logger.info('Wrapper GET request')
+            if 'token' in request.args:
+                token = request.args['token']
+                r = requests.get(auth_url + "/auth/" + token)
+                if r.json()['status'] == 'invalid':
+                    return error('invalid token')
+            else:
+                return error('token not set')
+        elif request.method == 'POST':
+            app.logger.info("Wrapper POST request")
+            if 'token' in request.get_json():
+                app.logger.info(request.get_data())
+                app.logger.info(request.get_json())
+                token = request.get_json()['token']
+                app.logger.info(token)
+                r = requests.get(auth_url + "/auth/" + token)
+                if r.json()['status'] == 'invalid':
+                    return error('invalid token')
+            else:
+                return error('token not set')
         return func(*args, **kwargs)
     app.logger.info('Wrapped!')
     return check_auth
@@ -54,15 +68,13 @@ def auth():
         else:
             return error('token not set')
 
-@app.route('/shoplist/add', methods=['POST'])
+@app.route('/shoplist', methods=['POST'])
 @auth_needed
 def shoplist_add():
-    '''
-    Параметры: имя, количество
-    :return:
-    '''
-    token = request.args['token']
+    ### Получаем данные
+    token = request.get_json()['token']
     if 'name' in request.get_json():
+        app.logger.info("Name: " + request.get_json()['name'])
         item_name = request.get_json()['name']
     else:
         return error('no name provided')
@@ -71,9 +83,28 @@ def shoplist_add():
     else:
         item_amount = 1
 
-    # r = requests.post(database_url + "/add_shoplist_item", data={'name': item_name, 'amount': item_amount}, headers=json_headers)
-    # return r.json()
-    return token
+    app.logger.info('test1')
+    app.logger.debug(token)
+    url = auth_url + "/get_user_by_token/" + token
+
+    app.logger.info(url)
+    data = requests.get(url).json()
+    app.logger.info(data)
+
+    app.logger.info('test2')
+
+    if not data['login']:
+        return error('can not find user')
+
+    login = data['login']
+    app.logger.info("Login: " + login)
+
+    ### Отправляем запрос
+    data = {'name': item_name, 'amount': item_amount, 'login': login}
+    app.logger.info(data)
+    r = requests.post(database_url + "/shoplist", json=data, headers=json_headers)
+
+    return r.json()
 
 @app.route('/', methods=['GET'])
 @auth_needed

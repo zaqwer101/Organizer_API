@@ -52,7 +52,8 @@ def check_token(token):
 
 
 def is_password_match(login, password):
-    user = get_user(login)
+    # TODO отрефакторить на JSON
+    user = get_user_by_login(login)
     if user:
         if user['password'] == password:
             return True
@@ -63,8 +64,17 @@ def encode_password(password):
     return hashlib.md5(password.encode()).hexdigest()
 
 
-def get_user(login):
+def get_user_by_login(login):
     user = requests.get('http://database:5000/users/' + login).json()
     if 'error' in user:
         return None
     return user
+
+
+@app.route('/get_user_by_token/<token>')
+def get_user_by_token(token):
+    login = redis.get(token).decode()
+    if login:
+        return jsonify({"login": login})
+    else:
+        return jsonify({'error': 'invalid token'})

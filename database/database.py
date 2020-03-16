@@ -1,12 +1,15 @@
 from pymongo import MongoClient
 
 from flask import Flask, jsonify, request
+import copy
 
 app = Flask(__name__)
+app.debug = True
 
 client = MongoClient('mongo', 27017, username='root', password='root')
 db = client.organizer
 users = db['users']
+shopping_list = db['shopping_list']
 
 
 @app.route('/users/<login>')
@@ -19,6 +22,25 @@ def get_user(login):
     return data
 
 
-@app.route('/add_shoplist_item')
-def add_shoplist_item():
-    pass
+@app.route('/shoplist', methods=['POST'])
+def shoplist_add():
+    app.logger.info(request.method)
+    app.logger.info('test')
+    app.logger.info(request.get_data())
+    login = request.get_json()['login']
+    app.logger.info('test2')
+    name = request.get_json()['name']
+    amount = request.get_json()['amount']
+    app.logger.info(request.get_json())
+    app.logger.info(login + ", " + name + ", " + str(amount))
+
+
+    if not login or not name or not amount:
+        return jsonify({"error": "incorrect data"})
+
+    data = {'name': name, 'amount': amount, 'login': login}
+    out = copy.deepcopy(data)
+    app.logger.info(data)
+    shopping_list.insert_one(data)
+    app.logger.info(out)
+    return out
