@@ -38,7 +38,7 @@ def authenticate(token):
 
 def generate_token(login):
     letters = string.ascii_letters
-    token = ''.join(random.choice(letters) for i in range(20))
+    token = ''.join(random.choice(letters) for i in range(100))
     tokens_count = len(scan_keys(login + "__*"))
     if tokens_count >= MAX_TOKENS_PER_USER:
         return None
