@@ -5,6 +5,7 @@ import random
 import requests
 import redis as __redis
 
+token_ttl = 600
 app = Flask(__name__)
 redis = __redis.Redis(host='redis', port=6379, db=0)
 
@@ -36,35 +37,18 @@ def authenticate(token):
 
 def generate_token(login):
     letters = string.ascii_letters
-    token = ''.join(random.choice(letters) for i in range(10))
-    tokens_count = len(scan_keys(login + "__*"))
-    tokens_count += 1
-    redis.set(login + "__token__" + str(tokens_count), token)
-    redis.expire(login + "__token__" + str(tokens_count), 60)
+    token = ''.join(random.choice(letters) for i in range(50))
+    redis.set(token, login)
+    redis.expire(token, token_ttl)
     return token
 
 
-def scan_keys(pattern):
-    """Returns a list of all the keys matching a given pattern"""
-    result = []
-    cur, keys = redis.scan(cursor=0, match=pattern, count=2)
-    result.extend(keys)
-    while cur != 0:
-        cur, keys = redis.scan(cursor=cur, match=pattern, count=2)
-        result.extend(keys)
-    return result
-
-
 def check_token(token):
-    keys = scan_keys("*__token__*")
-    app.logger.info("Elems: " + str(len(keys)))
-    for key in keys:
-        value = redis.get(key.decode()).decode()
-        app.logger.info(key.decode() + " " + value)
-        if value == token:
-            redis.expire(key, 60)
-            return True
-    return False
+    if redis.get(token):
+        redis.expire(token, token_ttl)
+        return True
+    else:
+        return False
 
 
 def is_password_match(login, password):
