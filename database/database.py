@@ -17,3 +17,8 @@ def get_user(login):
     if not data:
         return jsonify({"error": "user not found"})
     return data
+
+
+@app.route('/add_shoplist_item')
+def add_shoplist_item():
+    pass

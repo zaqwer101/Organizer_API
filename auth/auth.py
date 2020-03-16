@@ -5,13 +5,11 @@ import random
 import requests
 import redis as __redis
 
-MAX_TOKENS_PER_USER = 2
-
 app = Flask(__name__)
 redis = __redis.Redis(host='redis', port=6379, db=0)
 
 
-@app.route('/auth', methods=['POST'])
+@app.route('/', methods=['POST'])
 def authorize():
     # log in with password
     login = request.get_json()['login']
@@ -38,10 +36,8 @@ def authenticate(token):
 
 def generate_token(login):
     letters = string.ascii_letters
-    token = ''.join(random.choice(letters) for i in range(100))
+    token = ''.join(random.choice(letters) for i in range(10))
     tokens_count = len(scan_keys(login + "__*"))
-    if tokens_count >= MAX_TOKENS_PER_USER:
-        return None
     tokens_count += 1
     redis.set(login + "__token__" + str(tokens_count), token)
     redis.expire(login + "__token__" + str(tokens_count), 60)
