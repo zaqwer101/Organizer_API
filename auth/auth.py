@@ -13,12 +13,12 @@ redis = __redis.Redis(host='redis', port=6379, db=0)
 @app.route('/', methods=['POST'])
 def authorize():
     # log in with password
-    login = request.get_json()['login']
+    user = request.get_json()['user']
     password = request.get_json()['password']
     password = encode_password(password)
     app.logger.info("Encoded password: " + password)
-    if is_password_match(login, password):
-        token = generate_token(login)
+    if is_password_match(user, password):
+        token = generate_token(user)
         if not token:
             return jsonify({'error': 'max tokens exceeded'})
         return jsonify({'token': token})
@@ -35,10 +35,10 @@ def authenticate(token):
         return jsonify({"status": "invalid"})
 
 
-def generate_token(login):
+def generate_token(user):
     letters = string.ascii_letters
     token = ''.join(random.choice(letters) for i in range(50))
-    redis.set(token, login)
+    redis.set(token, user)
     redis.expire(token, token_ttl)
     return token
 
@@ -51,9 +51,9 @@ def check_token(token):
         return False
 
 
-def is_password_match(login, password):
+def is_password_match(user, password):
     # TODO отрефакторить на JSON
-    user = get_user_by_login(login)
+    user = get_user_by_name(user)
     if user:
         if user['password'] == password:
             return True
@@ -64,8 +64,8 @@ def encode_password(password):
     return hashlib.md5(password.encode()).hexdigest()
 
 
-def get_user_by_login(login):
-    user = requests.get('http://database:5000/users/' + login).json()
+def get_user_by_name(user):
+    user = requests.get('http://database:5000/users/' + user).json()
     if 'error' in user:
         return None
     return user
@@ -73,8 +73,8 @@ def get_user_by_login(login):
 
 @app.route('/get_user_by_token/<token>')
 def get_user_by_token(token):
-    login = redis.get(token).decode()
-    if login:
-        return jsonify({"login": login})
+    user = redis.get(token).decode()
+    if user:
+        return jsonify({"user": user})
     else:
         return jsonify({'error': 'invalid token'})

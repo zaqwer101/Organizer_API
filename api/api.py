@@ -46,16 +46,16 @@ def auth():
     # авторизация
     if request.method == 'POST':
         try:
-            login = request.get_json()['login']
+            user = request.get_json()['user']
             password = request.get_json()['password']
         except:
-            return error('no login or password provided')
-        if not login or not password:
-            return error('empty login or password')
-        data = {'login': login, 'password': password}
+            return error('no user or password provided')
+        if not user or not password:
+            return error('empty user or password')
+        data = {'user': user, 'password': password}
         token = requests.post(auth_url, json=data, headers=json_headers).content
         if not token:
-            return error('invalid login or password')
+            return error('invalid user or password')
         else:
             return token
     # аутентификация
@@ -85,13 +85,13 @@ def shoplist_add():
     data = requests.get(url).json()
     app.logger.info(data)
 
-    if not data['login']:
+    if not data['user']:
         return error('can not find user')
 
-    login = data['login']
+    user = data['user']
 
     ### Отправляем запрос
-    data = {'name': item_name, 'amount': item_amount, 'login': login}
+    data = {'name': item_name, 'amount': item_amount, 'user': user}
     r = requests.post(database_url + "/shoplist", json=data, headers=json_headers)
 
     return r.json()
@@ -100,3 +100,9 @@ def shoplist_add():
 @auth_needed
 def root():
     return 'Hello!'
+
+@app.route('/shoplist', methods=['GET'])
+@auth_needed
+def shoplist_get():
+    r = requests.get(database_url + "/shoplist", params={'token': request.args['token']})
+    return r.json()
