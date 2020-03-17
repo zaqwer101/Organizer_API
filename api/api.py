@@ -36,7 +36,6 @@ def auth_needed(func):
             else:
                 return error('token not set')
         return func(*args, **kwargs)
-    app.logger.info('Wrapped!')
     return check_auth
 
 
@@ -74,7 +73,6 @@ def shoplist_add():
     ### Получаем данные
     token = request.get_json()['token']
     if 'name' in request.get_json():
-        app.logger.info("Name: " + request.get_json()['name'])
         item_name = request.get_json()['name']
     else:
         return error('no name provided')
@@ -83,25 +81,17 @@ def shoplist_add():
     else:
         item_amount = 1
 
-    app.logger.info('test1')
-    app.logger.debug(token)
     url = auth_url + "/get_user_by_token/" + token
-
-    app.logger.info(url)
     data = requests.get(url).json()
     app.logger.info(data)
-
-    app.logger.info('test2')
 
     if not data['login']:
         return error('can not find user')
 
     login = data['login']
-    app.logger.info("Login: " + login)
 
     ### Отправляем запрос
     data = {'name': item_name, 'amount': item_amount, 'login': login}
-    app.logger.info(data)
     r = requests.post(database_url + "/shoplist", json=data, headers=json_headers)
 
     return r.json()

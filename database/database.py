@@ -24,16 +24,10 @@ def get_user(login):
 
 @app.route('/shoplist', methods=['POST'])
 def shoplist_add():
-    app.logger.info(request.method)
-    app.logger.info('test')
-    app.logger.info(request.get_data())
     login = request.get_json()['login']
-    app.logger.info('test2')
     name = request.get_json()['name']
     amount = request.get_json()['amount']
     app.logger.info(request.get_json())
-    app.logger.info(login + ", " + name + ", " + str(amount))
-
 
     if not login or not name or not amount:
         return jsonify({"error": "incorrect data"})
@@ -42,5 +36,4 @@ def shoplist_add():
     out = copy.deepcopy(data)
     app.logger.info(data)
     shopping_list.insert_one(data)
-    app.logger.info(out)
     return out
