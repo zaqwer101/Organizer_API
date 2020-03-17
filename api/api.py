@@ -106,3 +106,14 @@ def root():
 def shoplist_get():
     r = requests.get(database_url + "/shoplist", params={'token': request.args['token']})
     return r.json()
+
+@app.route('/register', methods=['POST'])
+def register():
+    if not 'user' in request.get_json() or not 'password' in request.get_json():
+        return error('user and password required')
+    user = request.get_json()['user']
+    password = request.get_json()['password']
+    data = {'user': user, 'password': password}
+    r = requests.post(auth_url + "/register", json=data)
+    return r.json()
+

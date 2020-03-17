@@ -5,9 +5,32 @@ import random
 import requests
 import redis as __redis
 
+def error(message):
+    return jsonify({'error': message})
+
 token_ttl = 600
 app = Flask(__name__)
 redis = __redis.Redis(host='redis', port=6379, db=0)
+database_url = 'http://database:5000'
+
+
+@app.route('/register', methods=['POST'])
+def register():
+    user = request.get_json()['user']
+    password = request.get_json()['password']
+    password = encode_password(password)
+
+    # проверяем есть ли уже такой юзер в бд
+    if get_user_by_name(user):
+        return error('user exists')
+
+    data = {'user': user, 'password': password}
+
+    # вносим юзера в БД
+    r = requests.post(database_url + '/users', json=data)
+    app.logger.info(get_user_by_name(user))
+    if r.json()['success'] == 'true':
+        return jsonify({'token': generate_token(user)})
 
 
 @app.route('/', methods=['POST'])
@@ -65,7 +88,7 @@ def encode_password(password):
 
 
 def get_user_by_name(user):
-    user = requests.get('http://database:5000/users/' + user).json()
+    user = requests.get(database_url + '/users/' + user).json()
     if 'error' in user:
         return None
     return user

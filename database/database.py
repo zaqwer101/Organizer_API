@@ -14,19 +14,27 @@ user_fields = {"user": 1, "password": 1, "_id": 0}
 shopping_list_fields = {"name": 1, "amount": 1, "_id": 0 }
 client = MongoClient('mongo', 27017, username='root', password='root')
 db = client.organizer
-users = db['users']
+users_collection = db['users']
 shopping_list_collection = db['shopping_list']
 auth_url = 'http://auth:5000'
 
 
-@app.route('/users/<user>')
+@app.route('/users/<user>', methods=['GET'])
 def get_user(user):
     app.logger.info(user)
-    data = users.find_one({"user": user}, user_fields)
+    data = users_collection.find_one({"user": user}, user_fields)
     app.logger.info(data)
     if not data:
         return jsonify({"error": "user not found"})
     return data
+
+@app.route('/users', methods=['POST'])
+def add_user():
+    user = request.get_json()['user']
+    password = request.get_json()['password']
+    data = { 'user': user, 'password': password }
+    users_collection.insert_one(data)
+    return jsonify({"success": "true"})
 
 
 @app.route('/shoplist', methods=['POST'])
