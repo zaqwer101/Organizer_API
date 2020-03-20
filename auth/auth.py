@@ -37,8 +37,13 @@ def register():
 def authorize():
     # log in with password
     user = request.get_json()['user']
-    password = request.get_json()['password']
-    password = encode_password(password)
+    try:
+        password = request.get_json()['password']
+        password = encode_password(password)
+    except:
+        # если пароль уже пришел зашифрованным
+        password_encrypted = request.get_json()['password_encrypted']
+        password = password_encrypted
     app.logger.info("Encoded password: " + password)
     if is_password_match(user, password):
         token = generate_token(user)

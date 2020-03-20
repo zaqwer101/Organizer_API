@@ -45,15 +45,32 @@ def auth_needed(func):
 def auth():
     # авторизация
     if request.method == 'POST':
+        password = None
+        is_password_encrypted = False
         try:
             user = request.get_json()['user']
-            password = request.get_json()['password']
         except:
-            return error('no user or password provided')
-        if not user or not password:
-            return error('empty user or password')
-        data = {'user': user, 'password': password}
-        token = requests.post(auth_url, json=data, headers=json_headers).content
+            return error('invalid credentials')
+        try:
+            password = request.get_json()['password']
+            is_password_encrypted = False
+        except:
+            try:
+                password_encrypted = request.get_json()['password_encrypted']
+                is_password_encrypted = True
+            except:
+                return error('invalid credentials')
+
+        if not (user and (bool(password) != is_password_encrypted )):
+            return error('invalid credentials')
+
+        # если пароль передан сразу зашифрованный
+        if not is_password_encrypted:
+            data = {'user': user, 'password': password}
+            token = requests.post(auth_url, json=data, headers=json_headers).content
+        else:
+            data = {'user': user, 'password_encrypted': password_encrypted}
+            token = requests.post(auth_url, json=data, headers=json_headers).content
         if not token:
             return error('invalid user or password')
         else:
