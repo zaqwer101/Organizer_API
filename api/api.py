@@ -50,7 +50,7 @@ def auth():
         try:
             user = request.get_json()['user']
         except:
-            return error('invalid credentials')
+            return error('no user provided')
         try:
             password = request.get_json()['password']
             is_password_encrypted = False
@@ -59,7 +59,7 @@ def auth():
                 password_encrypted = request.get_json()['password_encrypted']
                 is_password_encrypted = True
             except:
-                return error('invalid credentials')
+                return error('no password provided')
 
         if not (user and (bool(password) != is_password_encrypted )):
             return error('invalid credentials')
