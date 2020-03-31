@@ -45,7 +45,6 @@ services:
     image: nginx:latest
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./nginx/cert.crt:/cert.crt
-      - ./nginx/cert.key:/cert.key
+      - ./nginx/certs:/certs
     ports:
       - 443:443
