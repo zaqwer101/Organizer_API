@@ -16,8 +16,8 @@ services:
     - ./auth:/auth
   database:
     build: database/
-#    ports:
-#      - "5002:5000"
+    ports:
+      - "5002:5000"
     volumes:
       - ./database:/database
   redis:

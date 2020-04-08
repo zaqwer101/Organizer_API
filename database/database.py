@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+import functools
 
 from flask import Flask, jsonify, request
 import copy,requests
@@ -9,6 +10,24 @@ app.debug = True
 def error(message):
     return jsonify({'error': message})
 
+
+def check_params(params):
+    def __check_params(func):
+        @functools.wraps(func)
+        def check_params_inner(*args, **kwargs):
+            if request.method == 'GET':
+                for param in params:
+                    if not param in request.args:
+                        return jsonify({"error": "incorrect input"})
+            if request.method == 'POST':
+                for param in params:
+                    if not param in request.get_json().keys():
+                        return jsonify({"error": "incorrect input"})
+            return func(*args, **kwargs)
+
+        return check_params_inner
+
+    return __check_params
 
 user_fields = {"user": 1, "password": 1, "_id": 0}
 shopping_list_fields = {"name": 1, "amount": 1, "_id": 0 }
@@ -77,7 +96,11 @@ auth_url = 'http://auth:5000'
 #     app.logger.info(shopping_list)
 #     return jsonify(shopping_list)
 
+
+# curl "http://127.0.0.1:5002?table=shoplist&database=organizer&query=kek&token=dfssd"
+# curl --header "Content-Type: application/json" --request POST --data '{ "table": "shoplist", "database": "organizer", "query": "none", "token":"asd" }' http://127.0.0.1:5002 -k
 @app.route('/', methods=['GET', 'POST'])
+@check_params(params=['database', 'table', 'query', 'token'])
 def database_handler():
     # получаем данные из БД
     if request.method == 'GET':
@@ -85,3 +108,4 @@ def database_handler():
     # вносим данные в БД
     elif request.method == 'POST':
         pass
+    return jsonify({"status": "success"})
