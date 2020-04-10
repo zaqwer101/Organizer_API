@@ -1,11 +1,14 @@
 from pymongo import MongoClient
 import functools
-
+import json
 from flask import Flask, jsonify, request
-import copy,requests
+import copy, requests
+
+client = MongoClient('mongo', 27017, username='root', password='root')
 
 app = Flask(__name__)
 app.debug = True
+
 
 def error(message):
     return jsonify({'error': message})
@@ -28,14 +31,6 @@ def check_params(params):
         return check_params_inner
 
     return __check_params
-
-user_fields = {"user": 1, "password": 1, "_id": 0}
-shopping_list_fields = {"name": 1, "amount": 1, "_id": 0 }
-client = MongoClient('mongo', 27017, username='root', password='root')
-db = client.organizer
-users_collection = db['users']
-shopping_list_collection = db['shopping_list']
-auth_url = 'http://auth:5000'
 
 
 # @app.route('/users/<user>', methods=['GET'])
@@ -100,11 +95,26 @@ auth_url = 'http://auth:5000'
 # curl "http://127.0.0.1:5002?table=shoplist&database=organizer&query=kek&token=dfssd"
 # curl --header "Content-Type: application/json" --request POST --data '{ "table": "shoplist", "database": "organizer", "query": "none", "token":"asd" }' http://127.0.0.1:5002 -k
 @app.route('/', methods=['GET', 'POST'])
-@check_params(params=['database', 'table', 'query', 'token'])
+@check_params(params=['database', 'collection', 'query'])
 def database_handler():
     # получаем данные из БД
+    # query=get
     if request.method == 'GET':
-        pass
+        service_params = ['database', 'collection', 'query']
+        db_name = request.args['database']
+        collection_name = request.args['collection']
+        query = {}
+        result = []
+        for arg in request.args.keys():
+            if arg not in service_params:
+                query[arg] = request.args[arg]
+        app.logger.info(query)
+        db = client[db_name]
+        collection = db[collection_name]
+        for elem in collection.find(query, {'_id': False}):
+            app.logger.info(elem)
+            result.append(elem)
+        return jsonify(result)
     # вносим данные в БД
     elif request.method == 'POST':
         pass
