@@ -14,18 +14,18 @@ def error(message):
     return jsonify({'error': message})
 
 
-def check_params(params):
+def check_params(params_get, params_post):
     def __check_params(func):
         @functools.wraps(func)
         def check_params_inner(*args, **kwargs):
             if request.method == 'GET':
-                for param in params:
+                for param in params_get:
                     if not param in request.args:
-                        return jsonify({"error": "incorrect input"})
+                        return jsonify({"error": "incorrect GET input"})
             if request.method == 'POST':
-                for param in params:
+                for param in params_post:
                     if not param in request.get_json().keys():
-                        return jsonify({"error": "incorrect input"})
+                        return jsonify({"error": "incorrect POST input"})
             return func(*args, **kwargs)
 
         return check_params_inner
@@ -95,12 +95,14 @@ def check_params(params):
 # curl "http://127.0.0.1:5002?table=shoplist&database=organizer&query=kek&token=dfssd"
 # curl --header "Content-Type: application/json" --request POST --data '{ "table": "shoplist", "database": "organizer", "query": "none", "token":"asd" }' http://127.0.0.1:5002 -k
 @app.route('/', methods=['GET', 'POST'])
-@check_params(params=['database', 'collection', 'query'])
+@check_params(params_get=['database', 'collection'],
+              params_post=['database', 'collection', 'data']
+              )
 def database_handler():
     # получаем данные из БД
     # query=get
     if request.method == 'GET':
-        service_params = ['database', 'collection', 'query']
+        service_params = ['database', 'collection']
         db_name = request.args['database']
         collection_name = request.args['collection']
         query = {}
