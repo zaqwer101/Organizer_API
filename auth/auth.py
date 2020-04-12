@@ -5,8 +5,8 @@ import random
 import requests
 import redis as __redis
 
-def error(message):
-    return jsonify({'error': message})
+def error(message, code):
+    return make_response(jsonify({"error": message}), code)
 
 token_ttl = 600
 app = Flask(__name__)
@@ -22,7 +22,7 @@ def register():
 
     # проверяем есть ли уже такой юзер в бд
     if get_user_by_name(user):
-        return error('user exists')
+        return error('user exists', 400)
 
     data = {'user': user, 'password': password}
 
