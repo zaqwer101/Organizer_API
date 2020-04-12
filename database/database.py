@@ -56,7 +56,7 @@ def database_handler():
         for elem in collection.find(query, {'_id': False}):
             app.logger.info(elem)
             result.append(elem)
-        return jsonify(result)
+        return jsonify(result)  # статус 200 по умолчанию
     # вносим данные в БД
     elif request.method == 'POST':
         db_name = request.get_json()['database']
@@ -71,6 +71,6 @@ def database_handler():
             for elem in request.get_json()['data']:
                 app.logger.info(elem)
                 out.append(str(collection.insert_one(elem).inserted_id))
-            return jsonify({"output": out})
+            return make_response(jsonify({"output": out}), 201)  # объект создан
         else:
             return error("empty data", 400)
