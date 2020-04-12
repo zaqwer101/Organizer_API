@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 import hashlib
 import string
 import random
@@ -20,47 +20,51 @@ def register():
     password = request.get_json()['password']
     password = encode_password(password)
 
-    # проверяем есть ли уже такой юзер в бд
-    if get_user_by_name(user):
-        return error('user exists', 400)
+    data = {
+        'database': 'organizer', "collection": "users",
+        "data": [{'user': user, 'password': password}]
+    }
 
-    data = {'user': user, 'password': password}
+    # если в БД уже есть такой юзер
+    if get_user_by_name(user) is not None:
+        return error("user exists", 400)
 
     # вносим юзера в БД
-    r = requests.post(database_url + '/users', json=data)
-    app.logger.info(get_user_by_name(user))
-    if r.json()['success'] == 'true':
+    r = requests.post(database_url + '/', json=data)
+
+    if r.status_code == 201:
         return jsonify({'token': generate_token(user)})
+    elif r.status_code == 400:
+        return error("something went wrong", 400)
 
 
-@app.route('/', methods=['POST'])
-def authorize():
-    # log in with password
-    user = request.get_json()['user']
-    try:
-        password = request.get_json()['password']
-        password = encode_password(password)
-    except:
-        # если пароль уже пришел зашифрованным
-        password_encrypted = request.get_json()['password_encrypted']
-        password = password_encrypted
-    app.logger.info("Encoded password: " + password)
-    if is_password_match(user, password):
-        token = generate_token(user)
-        if not token:
-            return jsonify({'error': 'max tokens exceeded'})
-        return jsonify({'token': token})
-    else:
-        return jsonify({"error": "invalid credentials"})
-
-
-@app.route('/auth/<token>', methods=['GET'])
-def authenticate(token):
-    app.logger.info("Token: " + token)
-    if check_token(token):
-        return jsonify({"status": "valid"})
-    else:
-        return jsonify({"status": "invalid"})
+@app.route('/', methods=['GET', 'POST'])
+def auth():
+    if request.method == "POST":
+        # войти с именем юзера и паролем
+        user = request.get_json()['user']
+        if 'password_encrypted' in request.get_json():
+            # значит пароль уже пришел зашифрованным
+            password = request.get_json()["password_encrypted"]
+        else:
+            # иначе нужно зашифровать
+            password = encode_password(request.get_json()["password"])
+        if is_password_match(user, password):
+            token = generate_token(user)
+            app.logger.info(f'token: {token}')
+            if not token:
+                return error("max tokens exceeded", 400)
+            return jsonify({"token": token})
+        return error("invalid credentials", 401)
+    if request.method == "GET":
+        # проверяем валидность токена
+        if not "token" in request.args:
+            return error("no token provided", 400)
+        token = request.args['token']
+        if check_token(token):
+            return jsonify({"user": get_user_by_token(token)})
+        else:
+            return error("invalid token", 401)
 
 
 def generate_token(user):
@@ -79,11 +83,19 @@ def check_token(token):
         return False
 
 
-def is_password_match(user, password):
-    # TODO отрефакторить на JSON
+def get_user_by_name(user):
+    r = requests.get(f"{database_url}?database=organizer&collection=users&user={user}")
+    if r.status_code == 200:
+        return r.json()[0]
+    else:
+        return None
+
+
+def is_password_match(user, password_encoded):
     user = get_user_by_name(user)
+    app.logger.info(f"{user['user']}: {user['password']}")
     if user:
-        if user['password'] == password:
+        if user['password'] == password_encoded:
             return True
     return False
 
@@ -91,18 +103,5 @@ def is_password_match(user, password):
 def encode_password(password):
     return hashlib.md5(password.encode()).hexdigest()
 
-
-def get_user_by_name(user):
-    user = requests.get(database_url + '/users/' + user).json()
-    if 'error' in user:
-        return None
-    return user
-
-
-@app.route('/get_user_by_token/<token>')
 def get_user_by_token(token):
-    user = redis.get(token).decode()
-    if user:
-        return jsonify({"user": user})
-    else:
-        return jsonify({'error': 'invalid token'})
+    return redis.get(token).decode()

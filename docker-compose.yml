@@ -2,18 +2,18 @@ version: '3'
 services:
   app:
     build: api/
-#    ports:
-#      - "5000:5000"
+    ports:
+      - "5000:5000"
     volumes:
-    - ./api:/api
+      - ./api:/api
   auth:
-#    ports:
-#    - "5001:5000"
+    ports:
+      - "5001:5000"
     depends_on:
       - redis
     build: auth/
     volumes:
-    - ./auth:/auth
+      - ./auth:/auth
   database:
     build: database/
     ports:
