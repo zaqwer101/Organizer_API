@@ -56,6 +56,8 @@ def database_handler():
         for elem in collection.find(query, {'_id': False}):
             app.logger.info(elem)
             result.append(elem)
+        if len(result) == 0:
+            return error("not found", 404)
         return jsonify(result)  # статус 200 по умолчанию
     # вносим данные в БД
     elif request.method == 'POST':
