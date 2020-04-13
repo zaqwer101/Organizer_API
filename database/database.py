@@ -14,7 +14,7 @@ def error(message, code):
     return make_response(jsonify({"error": message}), code)
 
 
-def check_params(params_get=None, params_post=None, params_delete=None):
+def check_params(params_get=None, params_post=None, params_delete=None, params_put=None):
     def __check_params(func):
         @functools.wraps(func)
         def check_params_inner(*args, **kwargs):
@@ -30,19 +30,28 @@ def check_params(params_get=None, params_post=None, params_delete=None):
                 for param in params_delete:
                     if not param in request.get_json().keys():
                         return error("incorrect DELETE input", 400)
+            if request.method == 'PUT':
+                for param in params_put:
+                    if not param in request.get_json().keys():
+                        return error("incorrect PUT input", 400)
             return func(*args, **kwargs)
 
         return check_params_inner
 
     return __check_params
 
-# curl "http://127.0.0.1:5002?collection=shopping_list&database=organizer"
-# curl --header "Content-Type: application/json" --request POST --data '{ "collection": "shopping_list", "database": "organizer", "data": [{"name":"test4", "user": "zaqwer101"}]}' http://127.0.0.1:5002 -k
 
-@app.route('/', methods=['GET', 'POST', 'DELETE'])
+# GET:      curl "http://127.0.0.1:5002?collection=shopping_list&database=organizer"
+# POST:     curl --header "Content-Type: application/json" --request POST --data '{ "collection": "shopping_list", "database": "organizer", "data": [{"name":"test4", "user": "zaqwer101"}]}' http://127.0.0.1:5002 -k
+# DELETE:   curl --header "Content-Type: application/json" --request DELETE --data '{"collection": "shopping_list", "database": "organizer", "data": [{"user": "zaqwer1011"}] }' "http://127.0.0.1:5002" -k
+# PUT:      curl --header "Content-Type: application/json" --request PUT --data '{ "collection": "shopping_list", "database": "organizer", "query": {"name": "test6"}, "data": {"name": "test228"} }' http://127.0.0.1:5002 -k
+@app.route('/', methods=['GET', 'POST', 'DELETE', 'PUT'])
 @check_params(params_get=['database', 'collection'],
               params_post=['database', 'collection', 'data'],
-              params_delete=['database', 'collection', 'data'])
+              params_delete=['database', 'collection', 'data'],
+              params_put=['database', 'collection',
+                          'query',  # условие, какие элементы меняем
+                          'data'])  # на что меняем
 def database_handler():
     # получаем данные из БД
     # query=get
@@ -94,3 +103,19 @@ def database_handler():
             return make_response(jsonify({"status": "success", "deleted": count}), 201)
         else:
             return error("empty data", 400)
+    elif request.method == 'PUT':
+        db_name = request.get_json()['database']
+        collection_name = request.get_json()['collection']
+        db = client[db_name]
+        collection = db[collection_name]
+        app.logger.info(str(request.get_json()['query']) + ", " + str(request.get_json()['data']))
+
+        result = collection.update_one(
+            request.get_json()['query'],
+            {"$set": request.get_json()['data']}
+        )
+
+        if result.modified_count > 0:
+            return jsonify({"status": "success"})
+        else:
+            return error("not found", 404)
