@@ -41,10 +41,10 @@ def check_params(params_get=None, params_post=None, params_delete=None, params_p
     return __check_params
 
 
-# GET:      curl "http://127.0.0.1:5002?collection=shopping_list&database=organizer"
-# POST:     curl --header "Content-Type: application/json" --request POST --data '{ "collection": "shopping_list", "database": "organizer", "data": [{"name":"test4", "user": "zaqwer101"}]}' http://127.0.0.1:5002 -k
-# DELETE:   curl --header "Content-Type: application/json" --request DELETE --data '{"collection": "shopping_list", "database": "organizer", "data": [{"user": "zaqwer1011"}] }' "http://127.0.0.1:5002" -k
-# PUT:      curl --header "Content-Type: application/json" --request PUT --data '{ "collection": "shopping_list", "database": "organizer", "query": {"name": "test6"}, "data": {"name": "test228"} }' http://127.0.0.1:5002 -k
+# GET:      curl "http://127.0.0.1:5002?collection=shoplist&database=organizer"
+# POST:     curl --header "Content-Type: application/json" --request POST --data '{ "collection": "shoplist", "database": "organizer", "data": [{"name":"test4", "user": "zaqwer101"}]}' http://127.0.0.1:5002 -k
+# DELETE:   curl --header "Content-Type: application/json" --request DELETE --data '{"collection": "shoplist", "database": "organizer", "data": [{"user": "zaqwer1011"}] }' "http://127.0.0.1:5002" -k
+# PUT:      curl --header "Content-Type: application/json" --request PUT --data '{ "collection": "shoplist", "database": "organizer", "query": {"name": "test6"}, "data": {"name": "test228"} }' http://127.0.0.1:5002 -k
 @app.route('/', methods=['GET', 'POST', 'DELETE', 'PUT'])
 @check_params(params_get=['database', 'collection'],
               params_post=['database', 'collection', 'data'],
@@ -73,6 +73,8 @@ def database_handler():
         if len(result) == 0:
             return error("not found", 404)
         return jsonify(result)  # статус 200 по умолчанию
+
+
     # вносим данные в БД
     elif request.method == 'POST':
         db_name = request.get_json()['database']
@@ -90,6 +92,8 @@ def database_handler():
             return make_response(jsonify({"output": out}), 201)  # объект создан
         else:
             return error("empty data", 400)
+
+
     elif request.method == 'DELETE':
         db_name = request.get_json()['database']
         collection_name = request.get_json()['collection']
@@ -103,6 +107,8 @@ def database_handler():
             return make_response(jsonify({"status": "success", "deleted": count}), 201)
         else:
             return error("empty data", 400)
+
+
     elif request.method == 'PUT':
         db_name = request.get_json()['database']
         collection_name = request.get_json()['collection']

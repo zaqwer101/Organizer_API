@@ -20,6 +20,12 @@ services:
       - "5002:5000"
     volumes:
       - ./database:/database
+  shoplist:
+    build: shoplist/
+    ports:
+    - "5003:5000"
+    volumes:
+    - ./shoplist:/shoplist
   redis:
     image: redis
     command: "redis-server"
