@@ -5,6 +5,7 @@ import requests, json
 database = "organizer"
 collection = "shoplist"
 database_url = "http://database:5000"
+default_database_params = {"database": database, "collection": collection}
 json_headers = {'content-type': 'application/json'}
 
 app = Flask(__name__)
@@ -42,22 +43,67 @@ def check_params(params_get=None, params_post=None, params_delete=None, params_p
     return __check_params
 
 
+@app.route("/", methods=["GET", "POST", "DELETE"])
 @check_params(params_get=["user"],
               params_post=["user", "name"],  # amount необязательное поле
               params_delete=["user", "name"])
-@app.route("/", methods=["GET", "POST", "DELETE"])
 def shoplist():
-    pass
+    if request.method == "GET":
+        user = request.args['user']
+        return get_items_by_user(user)
+
+    if request.method == "POST":
+        user = request.get_json()['user']
+        name = request.get_json()['name']
+        amount = 1
+        if 'amount' in request.get_json():
+            amount = request.get_json()['amount']
+        r = add_item(user, name, amount)
+        # r = database_request({"user": user, "name": name, "amount": amount}, "POST")
+        return r.json()
+
+
+def add_item(user, name, amount):
+    item = get_item_by_name(user, name)
+    # если элемент с таким именем уже существует в бд
+    # TODO
 
 
 def get_item_by_name(user, name):
-    r = reqests.get(database_url, params={"user": user, "name": name, "database": database, "collection": collection},
-                    headers=json_headers)
+    """ Найти все элементы пользователя с таким именем"""
+    r = database_request({"user": user, "name": name}, "GET")
     if r.status_code == 400:
         error("incorrect params", 400)
     if r.status_code == 404:
         return None
     return r.json()
 
+
 def get_items_by_user(user):
-    pass
+    """ Получить список всех элементов пользователя """
+    r = database_request({"user": user}, "GET")
+    app.logger.info(r.json())
+    app.logger.info(r.status_code)
+    if r.status_code == 404:
+        return error("user not found", 404)
+    if r.status_code == 400:
+        return error("incorrect params", 400)
+    return jsonify(r.json())
+
+
+def database_request(params, request_method):
+    """ Сделать запрос к сервису БД """
+
+    app.logger.info(params)
+    if request_method == "POST":
+        data = [params]
+        query = {"database": database, "collection": collection, "data": data}
+        app.logger.info(query)
+        r = requests.post(database_url, json=query, headers=json_headers)
+    if request_method == "GET":
+        if not 'database' in params:
+            params['database'] = database
+        if not 'collection' in params:
+            params['collection'] = collection
+        r = requests.get(database_url, params=params, headers=json_headers)
+    return r
