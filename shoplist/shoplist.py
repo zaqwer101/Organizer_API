@@ -62,11 +62,23 @@ def shoplist():
         # r = database_request({"user": user, "name": name, "amount": amount}, "POST")
         return r.json()
 
+    if request.method == "DELETE":
+        user = request.get_json()['user']
+        name = request.get_json()['name']
+        r = database_request({"name": name, "user": user}, "DELETE")
+        return r.json()
+
 
 def add_item(user, name, amount):
     item = get_item_by_name(user, name)
-    # если элемент с таким именем уже существует в бд
-    # TODO
+    if item: # значит элемент с таким именем уже есть в бд
+        data = {}
+        data['query'] = {"user": user, "name": name}
+        data['data'] = {"amount": item["amount"] + amount}
+        r = database_request(data, "PUT")
+    else: # значит нужно добавить новый элемент
+        r = database_request({"user": user, "name": name, "amount": amount}, "POST")
+    return r
 
 
 def get_item_by_name(user, name):
@@ -76,7 +88,8 @@ def get_item_by_name(user, name):
         error("incorrect params", 400)
     if r.status_code == 404:
         return None
-    return r.json()
+    item = r.json()[0]
+    return item
 
 
 def get_items_by_user(user):
@@ -100,10 +113,22 @@ def database_request(params, request_method):
         query = {"database": database, "collection": collection, "data": data}
         app.logger.info(query)
         r = requests.post(database_url, json=query, headers=json_headers)
+
     if request_method == "GET":
         if not 'database' in params:
             params['database'] = database
         if not 'collection' in params:
             params['collection'] = collection
         r = requests.get(database_url, params=params, headers=json_headers)
+
+    if request_method == "PUT":
+        if not 'query' in params or not 'data' in params:
+            app.logger.error("data or query param for PUT request is empty")
+            return None
+        r = requests.put(database_url, json={"database": database, "collection": collection,
+                                             "query": params['query'], "data": params['data']})
+
+    if request_method == "DELETE":
+        data = [params]
+        r = requests.delete(database_url, json={"database": database, "collection": collection, "data": data})
     return r
