@@ -5,8 +5,10 @@ import random
 import requests
 import redis as __redis
 
+
 def error(message, code):
     return make_response(jsonify({"error": message}), code)
+
 
 token_ttl = 600
 app = Flask(__name__)
@@ -56,6 +58,7 @@ def auth():
                 return error("max tokens exceeded", 400)
             return jsonify({"token": token})
         return error("invalid credentials", 401)
+
     if request.method == "GET":
         # проверяем валидность токена
         if not "token" in request.args:
@@ -102,6 +105,7 @@ def is_password_match(user, password_encoded):
 
 def encode_password(password):
     return hashlib.md5(password.encode()).hexdigest()
+
 
 def get_user_by_token(token):
     return redis.get(token).decode()

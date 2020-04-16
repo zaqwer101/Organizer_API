@@ -1,11 +1,37 @@
 import functools
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 import requests, json
+
+def check_params(params_get=None, params_post=None, params_delete=None, params_put=None):
+    def __check_params(func):
+        @functools.wraps(func)
+        def check_params_inner(*args, **kwargs):
+            if request.method == 'GET':
+                for param in params_get:
+                    if not param in request.args:
+                        return error("incorrect GET input", 400)
+            if request.method == 'POST':
+                for param in params_post:
+                    if not param in request.get_json().keys():
+                        return error("incorrect POST input", 400)
+            if request.method == 'DELETE':
+                for param in params_delete:
+                    if not param in request.get_json().keys():
+                        return error("incorrect DELETE input", 400)
+            if request.method == 'PUT':
+                for param in params_put:
+                    if not param in request.get_json().keys():
+                        return error("incorrect PUT input", 400)
+            return func(*args, **kwargs)
+
+        return check_params_inner
+
+    return __check_params
 
 app = Flask(__name__)
 auth_url = "http://auth:5000"
-database_url = "http://database:5000"
+shoplist_url = "http://shoplist:5000"
 json_headers = {'content-type': 'application/json'}
 
 def error(message, code):
@@ -18,119 +44,68 @@ def auth_needed(func):
             app.logger.info('Wrapper GET request')
             if 'token' in request.args:
                 token = request.args['token']
-                r = requests.get(auth_url + "/auth/" + token)
-                if r.json()['status'] == 'invalid':
+                user = check_auth_token(token)
+                if user is None:
                     return error('invalid token', 400)
             else:
                 return error('token not set', 400)
+
         elif request.method == 'POST':
             app.logger.info("Wrapper POST request")
             if 'token' in request.get_json():
-                app.logger.info(request.get_data())
-                app.logger.info(request.get_json())
                 token = request.get_json()['token']
-                app.logger.info(token)
-                r = requests.get(auth_url + "/auth/" + token)
-                if r.json()['status'] == 'invalid':
+                user = check_auth_token(token)
+                if user is None:
                     return error('invalid token', 400)
             else:
                 return error('token not set', 400)
         return func(*args, **kwargs)
     return check_auth
 
+def check_auth_token(token):
+    """ Проверить токен, возвращает имя пользователя или None """
+    r = requests.get(auth_url, params={"token": token})
+    if 'user' in r.json():
+        return r.json()['user']
+    else:
+        return None
 
-# curl --header "Content-Type: application/json" --request POST --data '{"secret":"xyz"}' http://127.0.0.1:5000/auth
+def get_token(params):
+    r = requests.post(auth_url, json=params)
+    if r.status_code == 200:
+        return r.json()['token']
+    else:
+        return None
 
-@app.route('/auth', methods=['POST', 'GET'])
+@app.route('/auth', methods=["GET", "POST"])
+@check_params(params_get=["token"],
+              params_post=["user"])
 def auth():
-    # авторизация
-    if request.method == 'POST':
-        password = None
-        is_password_encrypted = False
-        try:
-            user = request.get_json()['user']
-        except:
-            return error('no user provided', 400)
-        try:
-            password = request.get_json()['password']
-            is_password_encrypted = False
-        except:
-            try:
-                password_encrypted = request.get_json()['password_encrypted']
-                is_password_encrypted = True
-            except:
-                return error('no password provided', 400)
-
-        if not (user and (bool(password) != is_password_encrypted )):
-            return error('invalid credentials', 400)
-
-        # если пароль передан сразу зашифрованный
-        if not is_password_encrypted:
-            data = {'user': user, 'password': password}
-            token = requests.post(auth_url, json=data, headers=json_headers).content
+    # проверяем токен авторизации
+    if request.method == "GET":
+        token = request.args["token"]
+        user = check_auth_token(token)
+        if user:
+            return jsonify({"user": user})
         else:
-            data = {'user': user, 'password_encrypted': password_encrypted}
-            token = requests.post(auth_url, json=data, headers=json_headers).content
-        if not token:
-            return error('invalid user or password', 400)
+            return error("invalid token", 401)
+
+    # проверяем учетные данные и выдаём токен
+    if request.method == "POST":
+        user = request.get_json()['user']
+        params = {"user": user}
+        if "password_encrypted" in request.get_json():
+            params['password_encrypted'] = request.get_json()['password_encrypted']
+        elif "password" in request.get_json():
+            params['password'] = request.get_json()['password']
         else:
-            return token
-    # аутентификация
-    if request.method == 'GET':
-        if 'token' in request.args:
-            token = request.args['token']
-            r = requests.get(auth_url + "/auth/" + token)
-            return r.json()
-        else:
-            return error('token not set', 400)
+            error("no password provided", 400)
+        token = get_token(params)
+        if token is None:
+            return error("invalid credentials", 401)
+        return jsonify({"token": token})
 
-@app.route('/shoplist', methods=['POST'])
+@app.route('/shoplist', methods=["GET"])
 @auth_needed
-def shoplist_add():
-    ### Получаем данные
-    token = request.get_json()['token']
-    if 'name' in request.get_json():
-        item_name = request.get_json()['name']
-    else:
-        return error('no name provided', 400)
-    if 'amount' in request.get_json():
-        item_amount = request.get_json()['amount']
-    else:
-        item_amount = 1
-
-    url = auth_url + "/get_user_by_token/" + token
-    data = requests.get(url).json()
-    app.logger.info(data)
-
-    if not data['user']:
-        return error('can not find user', 404)
-
-    user = data['user']
-
-    ### Отправляем запрос
-    data = {'name': item_name, 'amount': item_amount, 'user': user}
-    r = requests.post(database_url + "/shoplist", json=data, headers=json_headers)
-
-    return r.json()
-
-@app.route('/', methods=['GET'])
-@auth_needed
-def root():
-    return 'Hello!'
-
-@app.route('/shoplist', methods=['GET'])
-@auth_needed
-def shoplist_get():
-    r = requests.get(database_url + "/shoplist", params={'token': request.args['token']})
-    return r.json()
-
-@app.route('/register', methods=['POST'])
-def register():
-    if not 'user' in request.get_json() or not 'password' in request.get_json():
-        return error('user and password required', 400)
-    user = request.get_json()['user']
-    password = request.get_json()['password']
-    data = {'user': user, 'password': password}
-    r = requests.post(auth_url + "/register", json=data)
-    return r.json()
-
+def shoplist():
+    pass
