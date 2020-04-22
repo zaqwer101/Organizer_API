@@ -71,12 +71,17 @@ def check_auth_token(token):
         return None
 
 def get_token(params):
+    """
+    Получить токен авторизации по имени пользователя и паролю
+    params: { user, password | password_encrypted }
+    """
     r = requests.post(auth_url, json=params)
     if r.status_code == 200:
         return r.json()['token']
     else:
         return None
 
+# POST: curl --header "Content-Type: application/json" --request POST --data '{ "user": "zaqwer101", "password": "1234"}' https://127.0.0.1/auth -k
 @app.route('/auth', methods=["GET", "POST"])
 @check_params(params_get=["token"],
               params_post=["user"])
@@ -107,5 +112,39 @@ def auth():
 
 @app.route('/shoplist', methods=["GET"])
 @auth_needed
-def shoplist():
-    pass
+def shoplist_get_items():
+    token = request.args['token']
+    user = check_auth_token(token)
+    r = requests.get(shoplist_url, params={"user": user})
+    app.logger.info(f"Data: {r.json()}")
+    if r.status_code == 200:
+        return jsonify(r.json())
+    return error("incorrect input", 400)
+
+@app.route('/shoplist', methods=["POST"])
+@auth_needed
+@check_params(params_post=['name'])
+def shoplist_add_item():
+    token = request.get_json()['token']
+    user = check_auth_token(token)
+    name = request.get_json()['name']
+    params = {"user": user, "name": name}
+    if 'amount' in request.get_json():
+        params['amount'] = request.get_json()['amount']
+    r = requests.post(shoplist_url, json=params)
+    if r.status_code == 200:
+        return make_response(jsonify({"status": "success"}), 201)
+    else:
+        return r.json()
+
+@app.route('/shoplist', methods=["DELETE"])
+@auth_needed
+@check_params(params_delete=['name'])
+def shoplist_delete_item():
+    token = request.get_json()['token']
+    user = check_auth_token(token)
+    name = request.get_json()['name']
+    r = requests.delete(shoplist_url, json={'user': user, 'name': name})
+    if r.status_code == 200:
+        return jsonify({"status":"success"})
+    return r.json()
