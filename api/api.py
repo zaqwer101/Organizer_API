@@ -148,3 +148,12 @@ def shoplist_delete_item():
     if r.status_code == 200:
         return jsonify({"status":"success"})
     return r.json()
+
+@app.route('/register', methods=["POST"])
+@check_params(params_post=["user", "password"])
+def register():
+    user = request.get_json()["user"]
+    password = request.get_json()["password"]
+    r = requests.post(url=auth_url + "/register", json={"user": user, "password": password})
+    return r.json()
+    pass

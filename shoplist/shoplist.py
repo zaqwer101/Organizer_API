@@ -98,7 +98,7 @@ def get_items_by_user(user):
     app.logger.info(r.json())
     app.logger.info(r.status_code)
     if r.status_code == 404:
-        return error("user not found", 404)
+        return jsonify([])
     if r.status_code == 400:
         return error("incorrect params", 400)
     return jsonify(r.json())
