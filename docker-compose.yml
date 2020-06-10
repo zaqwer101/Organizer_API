@@ -2,13 +2,9 @@ version: '3'
 services:
   app:
     build: api/
-    ports:
-      - "5000:5000"
     volumes:
       - ./api:/api
   auth:
-    ports:
-      - "5001:5000"
     depends_on:
       - redis
     build: auth/
@@ -16,14 +12,10 @@ services:
       - ./auth:/auth
   database:
     build: database/
-    ports:
-      - "5002:5000"
     volumes:
       - ./database:/database
   shoplist:
     build: shoplist/
-    ports:
-    - "5003:5000"
     volumes:
     - ./shoplist:/shoplist
   redis:
