@@ -128,7 +128,7 @@ def shoplist_add_item():
     token = request.get_json()['token']
     user = check_auth_token(token)
     name = request.get_json()['name']
-    params = {"user": user, "name": name}
+    params = {"user": user, "name": name, "bought": "no"}
     if 'amount' in request.get_json():
         params['amount'] = request.get_json()['amount']
     r = requests.post(shoplist_url, json=params)

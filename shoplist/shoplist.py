@@ -71,14 +71,25 @@ def shoplist():
 
 def add_item(user, name, amount):
     item = get_item_by_name(user, name)
-    if item: # значит элемент с таким именем уже есть в бд
+    if item:  # значит элемент с таким именем уже есть в бд
         data = {}
         data['query'] = {"user": user, "name": name}
         data['data'] = {"amount": item["amount"] + amount}
         r = database_request(data, "PUT")
-    else: # значит нужно добавить новый элемент
-        r = database_request({"user": user, "name": name, "amount": amount}, "POST")
+    else:  # значит нужно добавить новый элемент
+        r = database_request({"user": user, "name": name, "amount": amount, "bought": "false"}, "POST")
     return r
+
+
+def set_bought(user, name):
+    item = get_item_by_name(user, name)
+    if item:
+        data = {}
+        data['query'] = {"user": user, "name": name}
+        data['data'] = {"bought": "true"}
+        r = database_request(data, "PUT")
+    else:
+        return error("item not found", 404)
 
 
 def get_item_by_name(user, name):
