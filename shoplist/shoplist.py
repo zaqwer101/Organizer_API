@@ -69,6 +69,15 @@ def shoplist():
         return r.json()
 
 
+@app.route("/bought", methods=["POST"])
+def bought():
+    user = request.json['user']
+    name = request.json['name']
+    app.logger.info(user + " " + name )
+    set_bought(user, name)
+    return jsonify({"status": "success"})
+
+
 def add_item(user, name, amount):
     item = get_item_by_name(user, name)
     if item:  # значит элемент с таким именем уже есть в бд

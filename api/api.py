@@ -3,6 +3,7 @@ import functools
 from flask import Flask, jsonify, request, make_response
 import requests, json
 
+
 def check_params(params_get=None, params_post=None, params_delete=None, params_put=None):
     def __check_params(func):
         @functools.wraps(func)
@@ -29,13 +30,16 @@ def check_params(params_get=None, params_post=None, params_delete=None, params_p
 
     return __check_params
 
+
 app = Flask(__name__)
 auth_url = "http://auth:5000"
 shoplist_url = "http://shoplist:5000"
 json_headers = {'content-type': 'application/json'}
 
+
 def error(message, code):
     return make_response(jsonify({"error": message}), code)
+
 
 def auth_needed(func):
     @functools.wraps(func)
@@ -60,7 +64,9 @@ def auth_needed(func):
             else:
                 return error('token not set', 400)
         return func(*args, **kwargs)
+
     return check_auth
+
 
 def check_auth_token(token):
     """ Проверить токен, возвращает имя пользователя или None """
@@ -69,6 +75,7 @@ def check_auth_token(token):
         return r.json()['user']
     else:
         return None
+
 
 def get_token(params):
     """
@@ -80,6 +87,7 @@ def get_token(params):
         return r.json()['token']
     else:
         return None
+
 
 # POST: curl --header "Content-Type: application/json" --request POST --data '{ "user": "zaqwer101", "password": "1234"}' https://127.0.0.1/auth -k
 @app.route('/auth', methods=["GET", "POST"])
@@ -110,6 +118,7 @@ def auth():
             return error("invalid credentials", 401)
         return jsonify({"token": token})
 
+
 @app.route('/shoplist', methods=["GET"])
 @auth_needed
 def shoplist_get_items():
@@ -120,6 +129,7 @@ def shoplist_get_items():
     if r.status_code == 200:
         return jsonify(r.json())
     return error("incorrect input", 400)
+
 
 @app.route('/shoplist', methods=["POST"])
 @auth_needed
@@ -137,6 +147,18 @@ def shoplist_add_item():
     else:
         return r.json()
 
+
+@app.route('/shoplist/bought', methods=["POST"])
+@auth_needed
+@check_params(params_post=['name'])
+def bought():
+    token = request.get_json()['token']
+    user = check_auth_token(token)
+    name = request.get_json()['name']
+    r = requests.post(f'{shoplist_url}/bought', json={"user": user, "name": name})
+    return r.json()
+
+
 @app.route('/shoplist', methods=["DELETE"])
 @auth_needed
 @check_params(params_delete=['name'])
@@ -146,8 +168,9 @@ def shoplist_delete_item():
     name = request.get_json()['name']
     r = requests.delete(shoplist_url, json={'user': user, 'name': name})
     if r.status_code == 200:
-        return jsonify({"status":"success"})
+        return jsonify({"status": "success"})
     return r.json()
+
 
 @app.route('/register', methods=["POST"])
 @check_params(params_post=["user", "password"])
