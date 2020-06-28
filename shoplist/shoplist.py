@@ -70,11 +70,12 @@ def shoplist():
 
 
 @app.route("/bought", methods=["POST"])
-def bought():
+def set_bought():
     user = request.json['user']
     name = request.json['name']
-    app.logger.info(user + " " + name )
-    set_bought(user, name)
+    bought = request.json['bought']
+    app.logger.info(user + " " + name + " " + bought)
+    change_bought(user, name, bought)
     return jsonify({"status": "success"})
 
 
@@ -90,12 +91,14 @@ def add_item(user, name, amount):
     return r
 
 
-def set_bought(user, name):
+def change_bought(user, name, bought):
     item = get_item_by_name(user, name)
     if item:
+        if item['bought'] == bought:
+            return jsonify({"status": "success"})
         data = {}
         data['query'] = {"user": user, "name": name}
-        data['data'] = {"bought": "true"}
+        data['data'] = {"bought": bought}
         r = database_request(data, "PUT")
     else:
         return error("item not found", 404)

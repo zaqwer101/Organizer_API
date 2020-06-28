@@ -1,7 +1,8 @@
 import functools
 
 from flask import Flask, jsonify, request, make_response
-import requests, json
+import requests
+import json
 
 
 def check_params(params_get=None, params_post=None, params_delete=None, params_put=None):
@@ -108,7 +109,8 @@ def auth():
         user = request.get_json()['user']
         params = {"user": user}
         if "password_encrypted" in request.get_json():
-            params['password_encrypted'] = request.get_json()['password_encrypted']
+            params['password_encrypted'] = request.get_json()[
+                'password_encrypted']
         elif "password" in request.get_json():
             params['password'] = request.get_json()['password']
         else:
@@ -150,12 +152,14 @@ def shoplist_add_item():
 
 @app.route('/shoplist/bought', methods=["POST"])
 @auth_needed
-@check_params(params_post=['name'])
+@check_params(params_post=['name', 'bought'])
 def bought():
     token = request.get_json()['token']
     user = check_auth_token(token)
     name = request.get_json()['name']
-    r = requests.post(f'{shoplist_url}/bought', json={"user": user, "name": name})
+    bought = request.get_json()['bought']
+    r = requests.post(f'{shoplist_url}/bought',
+                      json={"user": user, "name": name, "bought": bought})
     return r.json()
 
 
@@ -177,6 +181,7 @@ def shoplist_delete_item():
 def register():
     user = request.get_json()["user"]
     password = request.get_json()["password"]
-    r = requests.post(url=auth_url + "/register", json={"user": user, "password": password})
+    r = requests.post(url=auth_url + "/register",
+                      json={"user": user, "password": password})
     return r.json()
     pass
