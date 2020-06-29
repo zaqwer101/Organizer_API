@@ -10,7 +10,7 @@ def error(message, code):
     return make_response(jsonify({"error": message}), code)
 
 
-token_ttl = 600
+token_ttl = 86400
 app = Flask(__name__)
 redis = __redis.Redis(host='redis', port=6379, db=0)
 database_url = 'http://database:5000'
