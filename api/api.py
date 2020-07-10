@@ -183,5 +183,8 @@ def register():
     password = request.get_json()["password"]
     r = requests.post(url=auth_url + "/register",
                       json={"user": user, "password": password})
-    return r.json()
+    if r.status_code != 201: # если юзер в итоге не создался, ошибка
+        return error(r.json()['error'], 400) 
+    else:
+        return r.json()
     pass
