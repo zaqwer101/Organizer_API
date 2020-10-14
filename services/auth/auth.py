@@ -35,7 +35,7 @@ def register():
     r = requests.post(database_url + '/', json=data)
 
     if r.status_code == 201:
-        return jsonify({'token': generate_token(user)})
+        return jsonify({'token': generate_token(user)}), 201
     elif r.status_code == 400:
         return error("something went wrong", 400)
 
