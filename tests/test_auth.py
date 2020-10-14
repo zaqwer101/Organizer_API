@@ -24,15 +24,42 @@ def before():
     # если есть ошибки, выводим их
     for line in stderr.read().splitlines():
         print(line)
-    time.sleep(2)
-
     print("Done!")
 
-def test_auth_fail():
+def register(username, password):
+    content = request('POST', '/register', { "user": username, "password": password })
+    return content['token']
+
+def test_auth_token_fail():
     content = request('GET', '/auth', 'token=123456789')
     assert content['error'] == 'invalid token'
 
-def test_register_success():
-    content = request('POST', '/register', { "user": "test", "password": "testpassword" })
-    print(content)
+def test_auth_token_success():
+    token = register('test', 'testpassword')
+
+    content = request('GET', '/auth', f'token={token}')
+    assert 'user' in content
+    assert content['user'] == 'test'
+
+def test_auth_crypted_success():
+    """ 
+    с использованием поля password_encrypted 
+    """
+    register('test', 'testpassword')
+
+    content = request('POST', '/auth', {"user": "test", "password_encrypted": "e16b2ab8d12314bf4efbd6203906ea6c"})
+    assert 'token' in content
+    
+    token = content['token']
+    auth = request('GET', '/auth', f'token={token}')
+    assert 'user' in auth
+
+def test_auth_password_success():
+    """
+    с использованием логина и пароля (поле password)
+    """
+
+    register('test', 'testpassword')
+
+    content = request('POST', '/auth', {"user": "test", "password": "testpassword"})
     assert 'token' in content
