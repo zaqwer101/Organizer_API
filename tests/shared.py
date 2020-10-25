@@ -2,12 +2,15 @@ import requests
 import pytest
 import paramiko
 import os
+import urllib3
+
 
 HOST='localhost'
 SSHKEY = '~/.ssh/id_rsa'
 
 
 def _before():
+    urllib3.disable_warnings()
     # очищаем БД от всех данных и перезапускаем database-контейнер
     if HOST != 'localhost' and HOST != '127.0.0.1':
         ssh = paramiko.SSHClient()
