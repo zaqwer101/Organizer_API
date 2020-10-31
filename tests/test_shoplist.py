@@ -19,6 +19,11 @@ def test_add_success():
     assert data[0]['bought'] == 'false'
     assert data[0]['amount'] == 1
 
+    request('POST', '/shoplist', {"name": "item1", "token": token})
+    data = get_shoplist_items(token)
+    assert len(data) == 1
+    assert data[0]['amount'] == 2
+
 
 def test_delete_success():
     token = register('test', 'testpassword')
@@ -29,3 +34,14 @@ def test_delete_success():
     request('DELETE', '/shoplist', {"name": "item1", "token": token})
     data = get_shoplist_items(token)
     assert len(data) == 0
+    
+
+def test_setbought_success():
+    token = register('test', 'testpassword')
+    request('POST', '/shoplist', {"name": "item1", "token": token})
+    data = get_shoplist_items(token)
+    assert data[0]['bought'] == 'false'
+
+    request('POST', '/shoplist/bought', {"name": "item1", "token": token, "bought": "true"})
+    data = get_shoplist_items(token)
+    assert data[0]['bought'] == 'true'
