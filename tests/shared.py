@@ -31,8 +31,15 @@ def request(method, endpoint, data):
         r = requests.post(url="https://" + HOST + endpoint, json=data, verify=False)
     elif method == 'GET':
         r = requests.get(url="https://" + HOST + endpoint, params=data, verify=False)
-
+    elif method == 'DELETE':
+        r = requests.delete(url="https://" + HOST + endpoint, json=data, verify=False)
     return r.json()
+
+
+def get_shoplist_items(token):
+    data = request('GET', '/shoplist', f"token={token}")
+    return data
+
 
 def register(username, password):
     content = request('POST', '/register', {"user": username, "password": password})
