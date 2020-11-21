@@ -45,7 +45,7 @@ def check_params(params_get=None, params_post=None, params_delete=None, params_p
 
 @app.route("/", methods=["GET", "POST", "DELETE"])
 @check_params(params_get=["user"],
-              params_post=["user", "name"],  # amount необязательное поле
+              params_post=["user", "name"],  # amount и shop - необязательные поля
               params_delete=["user", "name"])
 def shoplist():
     if request.method == "GET":
@@ -55,10 +55,11 @@ def shoplist():
     if request.method == "POST":
         user = request.get_json()['user']
         name = request.get_json()['name']
+        shop = request.get_json()['shop']
         amount = 1
         if 'amount' in request.get_json():
             amount = request.get_json()['amount']
-        r = add_item(user, name, amount)
+        r = add_item(user, name, amount, shop)
         # r = database_request({"user": user, "name": name, "amount": amount}, "POST")
         return r.json()
 
@@ -74,12 +75,13 @@ def set_bought():
     user = request.json['user']
     name = request.json['name']
     bought = request.json['bought']
-    app.logger.info(user + " " + name + " " + bought)
-    change_bought(user, name, bought)
+    shop = request.json['shop']
+    app.logger.info(user + " " + name + " " + bought + " " + shop)
+    change_bought(user, name, bought, shop)
     return jsonify({"status": "success"})
 
 
-def add_item(user, name, amount):
+def add_item(user, name, amount, shop):
     item = get_item_by_name(user, name)
     if item:  # значит элемент с таким именем уже есть в бд
         data = {}
@@ -87,7 +89,7 @@ def add_item(user, name, amount):
         data['data'] = {"amount": item["amount"] + amount}
         r = database_request(data, "PUT")
     else:  # значит нужно добавить новый элемент
-        r = database_request({"user": user, "name": name, "amount": amount, "bought": "false"}, "POST")
+        r = database_request({"user": user, "name": name, "amount": amount, "bought": "false", "shop": shop}, "POST")
     return r
 
 
@@ -104,8 +106,19 @@ def change_bought(user, name, bought):
         return error("item not found", 404)
 
 
+def get_item_by_shop(user, shop):
+    """ Получить список всех элементов из конкретного магазина """
+    r = database_request({"user": user, "shop":shop}, "GET")
+    if r.status_code == 400:
+        error("incorrect params", 400)
+    if r.status_code == 404:
+        return None
+    item = r.json()[0]
+    return item
+
+
 def get_item_by_name(user, name):
-    """ Найти все элементы пользователя с таким именем"""
+    """ Найти все элементы пользователя с таким именем """
     r = database_request({"user": user, "name": name}, "GET")
     if r.status_code == 400:
         error("incorrect params", 400)
