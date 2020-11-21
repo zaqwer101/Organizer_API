@@ -140,7 +140,11 @@ def shoplist_add_item():
     token = request.get_json()['token']
     user = check_auth_token(token)
     name = request.get_json()['name']
-    params = {"user": user, "name": name, "bought": "no"}
+    if 'shop' in request.get_json():
+        shop = request.get_json()['shop']
+    else:
+        shop = None
+    params = {"user": user, "name": name, "bought": "no", "shop": shop}
     if 'amount' in request.get_json():
         params['amount'] = request.get_json()['amount']
     r = requests.post(shoplist_url, json=params)
@@ -158,8 +162,9 @@ def bought():
     user = check_auth_token(token)
     name = request.get_json()['name']
     bought = request.get_json()['bought']
+    shop = request.get_json()['shop']
     r = requests.post(f'{shoplist_url}/bought',
-                      json={"user": user, "name": name, "bought": bought})
+                      json={"user": user, "name": name, "bought": bought, "shop": shop})
     return r.json()
 
 
