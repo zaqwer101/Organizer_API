@@ -61,12 +61,15 @@ def database_handler():
         collection_name = request.args['collection']
         query = {}
         result = []
+
         for arg in request.args.keys():
             if arg not in service_params:
                 query[arg] = request.args[arg]
+                
         app.logger.info(query)
         db = client[db_name]
         collection = db[collection_name]
+
         for elem in collection.find(query, {'_id': False}):
             app.logger.info(elem)
             result.append(elem)
@@ -101,6 +104,7 @@ def database_handler():
         collection = db[collection_name]
         data = request.get_json()['data']
         app.logger.info(data)
+
         if len(data) != 0:
             for elem in request.get_json()['data']:
                 count = collection.delete_many(elem).deleted_count
