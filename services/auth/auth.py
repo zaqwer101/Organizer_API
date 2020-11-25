@@ -23,34 +23,38 @@ def register():
     password = encode_password(password)
 
     data = {
-        'database': 'organizer', "collection": "users",
-        "data": [{'user': user, 'password': password}]
+        "database": "organizer", "collection": "users",
+        "data": [{
+            "user": user, 
+            "password": password
+            }]
     }
 
     # если в БД уже есть такой юзер
-    if get_user_by_name(user) is not None:
+    if get_user_by_name(user):
         return error("user exists", 400)
 
     # вносим юзера в БД
     r = requests.post(database_url + '/', json=data)
 
     if r.status_code == 201:
-        return jsonify({'token': generate_token(user)}), 201
+        return jsonify({"token": generate_token(user)}), 201
     elif r.status_code == 400:
         return error("something went wrong", 400)
 
 
 @app.route('/', methods=['GET', 'POST'])
 def auth():
-    if request.method == "POST":
+    if request.method == 'POST':
         # войти с именем юзера и паролем
         user = request.get_json()['user']
         if 'password_encrypted' in request.get_json():
             # значит пароль уже пришел зашифрованным
-            password = request.get_json()["password_encrypted"]
+            password = request.get_json()['password_encrypted']
         else:
             # иначе нужно зашифровать
-            password = encode_password(request.get_json()["password"])
+            password = encode_password(request.get_json()['password'])
+            
         if is_password_match(user, password):
             token = generate_token(user)
             app.logger.info(f'token: {token}')
@@ -59,13 +63,15 @@ def auth():
             return jsonify({"token": token})
         return error("invalid credentials", 401)
 
-    if request.method == "GET":
+    if request.method == 'GET':
         # проверяем валидность токена
-        if not "token" in request.args:
+        if not 'token' in request.args:
             return error("no token provided", 400)
         token = request.args['token']
-        if check_token(token):
-            return jsonify({"user": get_user_by_token(token)})
+
+        user = get_user_by_token(token)
+        if user:
+            return jsonify({"user": user})
         else:
             return error("invalid token", 401)
 
@@ -78,16 +84,14 @@ def generate_token(user):
     return token
 
 
-def check_token(token):
-    if redis.get(token):
-        redis.expire(token, token_ttl)
-        return True
-    else:
-        return False
-
-
 def get_user_by_name(user):
-    r = requests.get(f"{database_url}?database=organizer&collection=users&user={user}")
+    r = requests.get(database_url, 
+        params = {
+            "database":     "organizer",
+            "collection":   "users",
+            "user":         user
+            })
+
     if r.status_code == 200:
         return r.json()[0]
     else:
@@ -96,7 +100,7 @@ def get_user_by_name(user):
 
 def is_password_match(user, password_encoded):
     user = get_user_by_name(user)
-    app.logger.info(f"{user['user']}: {user['password']}")
+    app.logger.info(f'{user["user"]}: {user["password"]}')
     if user:
         if user['password'] == password_encoded:
             return True
@@ -108,4 +112,10 @@ def encode_password(password):
 
 
 def get_user_by_token(token):
-    return redis.get(token).decode()
+    user = redis.get(token)
+    if user:
+        redis.expire(token, token_ttl)
+        user = user.decode()
+        return user
+    else:
+        return None
