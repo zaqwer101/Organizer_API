@@ -1,0 +1,6 @@
+runs-on: self-hosted
+
+build:
+  stage: build
+  script: 
+    - echo "Hello, world!"
