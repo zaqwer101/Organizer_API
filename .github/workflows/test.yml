@@ -10,6 +10,7 @@ jobs:
           mkdir services/nginx/certs
           openssl req  -nodes -new -x509  -keyout services/nginx/certs/cert.key -out services/nginx/certs/cert.crt -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com"
           cd services
+          docker-compose down || exit 0
           docker-compose up -d 
           
 #   sleep:
