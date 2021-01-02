@@ -7,13 +7,21 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: |
-          echo "Done"
+          mkdir services/nginx/certs
+          openssl req  -nodes -new -x509  -keyout services/nginx/certs/cert.key -out services/nginx/certs/cert.crt
+          cd services
+          docker-compose up -d 
+          
+  sleep:
+    name: Wait for services to start
+    runs-on: self-hosted
+    steps:
+      - uses: jakejarvis/wait-action@master
+        with:
+          time: '60s'
       
   test:
     runs-on: self-hosted
     steps:
     - run: |
-        echo "Hello, world!"
-        ls -alh
-        ls -alh *
-        echo $PWD
+        curl https://127.0.0.1/shoplist -k
