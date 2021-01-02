@@ -1,6 +1,11 @@
-runs-on: self-hosted
+on: workflow_dispatch
 
-build:
-  stage: build
-  script: 
-    - echo "Hello, world!"
+jobs:
+  test:
+    runs-on: self-hosted
+    steps:
+    - run: |
+        echo "Hello, world!"
+        mkdir test
+        cd test
+        echo $PWD
