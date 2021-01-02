@@ -1,11 +1,19 @@
 on: workflow_dispatch
 
 jobs:
+  build:
+    name: Start project
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          echo "Done"
+      
   test:
     runs-on: self-hosted
     steps:
     - run: |
         echo "Hello, world!"
-        mkdir test
-        cd test
+        ls -alh
+        ls -alh *
         echo $PWD
