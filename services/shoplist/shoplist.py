@@ -55,12 +55,16 @@ def shoplist():
     if request.method == 'POST':
         user = request.get_json()['user']
         name = request.get_json()['name']
-        shop = request.get_json()['shop']
-        
+
+        if 'shop' in request.get_json():
+            shop = request.get_json()['shop']
+        else:
+            shop = None
+
         amount = 1
         if 'amount' in request.get_json():
             amount = request.get_json()['amount']
-        
+
         r = add_item(user, name, amount, shop)
         return r.json()
 
@@ -78,8 +82,8 @@ def set_bought():
     bought = request.json['bought']
     shop = request.json['shop']
     app.logger.info(user + ' ' + name + ' ' + bought + ' ' + shop)
-    
-    if change_bought(user, name, bought): 
+
+    if change_bought(user, name, bought):
         return jsonify({"status": "success"})
     else:
         return error("item not found", 404)
@@ -88,10 +92,15 @@ def set_bought():
 def add_item(user, name, amount, shop):
     item = get_item_by_name(user, name)
     if item:  # значит элемент с таким именем уже есть в бд
-        data = {}
-        data['query'] = {"user": user, "name": name}
-        data['data'] = {"amount": item["amount"] + amount}
-        r = database_request(data, 'PUT')
+        if item['shop'] == shop:  # проверяем, совпадают ли магазины элементов
+            # если да - увеличиваем amount существующего
+            data = {}
+            data['query'] = {"user": user, "name": name}
+            data['data'] = {"amount": item["amount"] + amount}
+            r = database_request(data, 'PUT')
+        else:  # если нет - добавляем как новый
+            r = database_request({"user": user, "name": name, "amount": amount, "bought": "false", "shop": shop},
+                                 'POST')
     else:  # значит нужно добавить новый элемент
         r = database_request({"user": user, "name": name, "amount": amount, "bought": "false", "shop": shop}, 'POST')
     return r
@@ -154,14 +163,14 @@ def database_request(params, request_method):
         if not 'query' in params or not 'data' in params:
             app.logger.error("data or query param for PUT request is empty")
             return None
-        r = requests.put(database_url, json={"database":    database, 
-                                             "collection":  collection,
-                                             "query":       params['query'], 
-                                             "data":        params['data']})
+        r = requests.put(database_url, json={"database": database,
+                                             "collection": collection,
+                                             "query": params['query'],
+                                             "data": params['data']})
 
     if request_method == 'DELETE':
         data = [params]
-        r = requests.delete(database_url, json={"database":     database, 
-                                                "collection":   collection, 
-                                                "data":         data})
+        r = requests.delete(database_url, json={"database": database,
+                                                "collection": collection,
+                                                "data": data})
     return r

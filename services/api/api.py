@@ -143,6 +143,7 @@ def shoplist_add_item():
         shop = None
 
     params = {"user": user, "name": name, "bought": "false", "shop": shop}
+
     if 'amount' in request.get_json():
         params['amount'] = request.get_json()['amount']
     
